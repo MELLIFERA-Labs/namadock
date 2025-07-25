@@ -98,7 +98,7 @@ docker run -d \
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `TYPE` | Network type | `mainnet` | `mainnet`, `testnet` |
+| `TYPE` | Network type | `mainnet` | `mainnet`, `housefire-testnet` |
 | `USE_SERVICES` | Service configuration | `MELLIFERA` | `MELLIFERA`, `itrocket`, `mandragora` |
 | `SNAPSHOT` | Snapshot URL for fast sync | from `USE_SERVICES` | `https://example.com/snapshot.tar.lz4` |
 | `ADDRBOOK` | Address book URL | from `USE_SERVICES` | `https://example.com/addrbook.json` |
