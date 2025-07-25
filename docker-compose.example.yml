@@ -1,6 +1,6 @@
 services:
   node: 
-    image: ghcr.io/mellifera-labs/namadock-beta:v101.1.2-1beta
+    image: ghcr.io/mellifera-labs/namadock:v101.1.2-1beta
     container_name: namada_node
     ports:
       - "21257:26657"
