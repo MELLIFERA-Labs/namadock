@@ -1,0 +1,35 @@
+chain_id: namada.5f5de2dd1b88cba30586420
+network_config_server: https://github.com/anoma/namada-mainnet-genesis/releases/download/mainnet-genesis
+
+seeds:
+  - tcp://04affb50117ef548cbf7d1ddb1e6416dec0645ae@namada-mainnet-seed.itrocket.net:14656
+  - tcp://3b03b50708d334529888eb4ea35606dcb460c8cf@namada-seed.mandragora.io:21656
+  - tcp://5a7f398e1517fd661689449971a4ec26dd0bea5e@namada-mainnet-ps.mellifera.network:26656
+
+peers:
+  - tcp://805ba1297ee4e4d64e2d5ec17423365b0489dafb@namada-mainnet-peer.itrocket.net:14656
+  - tcp://5a7f398e1517fd661689449971a4ec26dd0bea5e@namada-mainnet-ps.mellifera.network:26656
+  - tcp://e055101fc58397cd4e740403807e2250a60c9cb0@namada-peer.mandragora.io:26656
+
+services:
+  MELLIFERA:                   
+    snapshot: https://storage.mellifera.network/namada_mainnet/snapshot_latest.tar.lz4
+    addrbook: https://storage.mellifera.network/namada_mainnet/addrbook.json
+    peers: "{{ peers | join(',') }}"
+    seeds: "{{ seeds | join(',') }}"
+    state_sync_rpc: https://namada-mainnet-rpc.mellifera.network:443
+    state_sync_peer: tcp://5a7f398e1517fd661689449971a4ec26dd0bea5e@namada-mainnet-ps.mellifera.network:26656
+  itrocket: 
+   snapshot: https://server-5.itrocket.net/mainnet/namada/namada_2025-07-25_2908825_snap.tar.lz4
+   peers: "{{ peers | join(',') }}"
+   seeds: "{{ seeds | join(',') }}"
+   addrbook: https://server-5.itrocket.net/mainnet/namada/addrbook.json
+  mandragora: 
+    peers: "{{ peers | join(',') }}"
+    seeds: "{{ seeds | join(',') }}"
+    addrbook: https://snapshots2.mandragora.io/namada-full/addrbook.json
+    state_sync_rpc: https://namada-rpc.mandragora.io:443
+    state_sync_peer: tcp://e055101fc58397cd4e740403807e2250a60c9cb0@namada-peer.mandragora.io:26656
+
+   
+    

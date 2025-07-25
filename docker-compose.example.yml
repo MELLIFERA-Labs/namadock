@@ -1,0 +1,18 @@
+services:
+  node: 
+    image: ghcr.io/mellifera-labs/namadock-beta:v101.1.2-1beta
+    container_name: namada_node
+    ports:
+      - "21257:26657"
+      - "21256:26656"
+      - "21260:26660"
+      - "21258:26658"
+    volumes:
+      - /home/ubuntu/namadock-data:/home/namada/.local/share/namada
+      - /home/ubuntu/namadock-masp:/home/namada/.masp-params
+    environment:
+      - RUN_FROM=snapshot
+      - EXTERNAL_ADDRESS=IP:21260
+      - PEERS=no
+      #- ENABLE_SEED_MODE=true
+    command: ["ledger", "run"]

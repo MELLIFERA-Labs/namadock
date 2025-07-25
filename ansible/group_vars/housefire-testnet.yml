@@ -1,0 +1,18 @@
+chain_id: housefire-alpaca.cc0d3e0c033be
+network_config_server: https://github.com/vknowable/namada-campfire/releases/download/housefire-alpaca
+
+peers:
+  - tcp://0ed550f6f3acc48505fb194ad7966d923db5f7bb@167.99.185.160:26656
+  - tcp://3e254524b630ee5a1d0df6aa40b4ed1370b5e51a@74.50.93.254:26656
+  - tcp://6e5d44465aea12695038f94b4016e16f587d4a20@80.241.215.77:21856
+seeds:
+  - tcp://6e5d44465aea12695038f94b4016e16f587d4a20@80.241.215.77:21856
+
+services:
+  MELLIFERA:                   
+    snapshot: https://storage.mellifera.network/namada_testnet/snapshot_latest.tar.lz4
+    addrbook: https://storage.mellifera.network/namada_testnet/addrbook.json
+    peers: "{{ peers | join(',') }}"
+    seeds: "{{ seeds | join(',') }}"
+    state_sync_rpc: https://namada-testnet-rpc.mellifera.network:443
+    state_sync_peer: tcp://6e5d44465aea12695038f94b4016e16f587d4a20@80.241.215.77:21856

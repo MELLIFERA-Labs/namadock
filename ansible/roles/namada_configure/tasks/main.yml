@@ -1,0 +1,182 @@
+- name: Strip surrounding quotes and spaces
+  set_fact:
+    external_address: "{{ external_address | trim | trim('\"') }}"
+  when: external_address | length > 0
+
+- name: Resolve public IP when EXTERNAL_ADDRESS == "IP:<port>"
+  uri:
+    url: https://api.ipify.org?format=json
+    return_content: yes
+  register: ipify
+  when: external_address | length > 0 and external_address | regex_search('^IP:')
+
+- name: Build final external_address
+  set_fact:
+    external_address: >-
+      {% if external_address is defined and external_address | regex_search('^IP:') %}
+        {{ ipify.json.ip }}{{ external_address[2:] }}
+      {% else %}
+        {{ external_address }}
+      {% endif %}
+  when: external_address | length > 0
+
+- name: Init Node
+  ansible.builtin.command:
+    cmd: 'namadac utils join-network --chain-id {{ chain_id }}'
+  environment:
+    NAMADA_NETWORK_CONFIGS_SERVER: "{{ network_config_server }}"
+    XDG_DATA_HOME: "/home/namada/.local/share"
+  args:
+    creates: "/home/namada/.local/share/namada/{{ chain_id }}"
+
+- name: Set MONIKER
+  ansible.builtin.lineinfile:
+    path: "/home/namada/.local/share/namada/{{ chain_id }}/config.toml"
+    regexp: '^moniker ='
+    line: 'moniker = "{{ moniker }}"'
+    state: present
+
+- name: Update peers in config.toml file
+  ansible.builtin.lineinfile:
+    path: '/home/namada/.local/share/namada/{{ chain_id }}/config.toml'
+    regexp: '^persistent_peers ='
+    line: 'persistent_peers = "{{ cfg.peers }}"'
+    state: present
+  when: cfg.peers is defined and cfg.peers is truthy(convert_bool=True)
+
+- name: Update seeds in config.toml file
+  ansible.builtin.lineinfile:
+    path: '/home/namada/.local/share/namada/{{ chain_id }}/config.toml'
+    regexp: '^seeds ='
+    line: 'seeds = "{{ cfg.seeds }}"'
+    state: present
+  when: cfg.seeds is defined and cfg.seeds is truthy(convert_bool=True)
+
+- name: Enable seed mode
+  ansible.builtin.lineinfile:
+    path: "/home/namada/.local/share/namada/{{ chain_id }}/config.toml"
+    regexp: '^seed_mode = .*'
+    line: 'seed_mode = true'
+  when: enable_seed_mode | bool
+
+- name: Enable Prometheus metrics
+  ansible.builtin.lineinfile:
+    path: "/home/namada/.local/share/namada/{{ chain_id }}/config.toml"
+    regexp: '^prometheus = .*'
+    line: 'prometheus = true'
+  when: enable_prometheus | bool
+
+- name: Configure indexer setting
+  ansible.builtin.lineinfile:
+    path: '/home/namada/.local/share/namada/{{ chain_id }}/config.toml'
+    regexp: '^indexer = "'
+    line: 'indexer = "{{ indexer }}"'
+    state: present
+
+- name: Set external_address in config.toml
+  ansible.builtin.lineinfile:
+    path: "/home/namada/.local/share/namada/{{ chain_id }}/config.toml"
+    regexp: '^external_address\s*='
+    line: 'external_address = "{{ external_address | trim }}"'
+  when: external_address is defined
+
+- name: debug config_port_changes
+  ansible.builtin.debug:
+    msg: "Config port changes: {{ config_port_changes }}" 
+
+- name: Adjust config.toml port
+  lineinfile:
+    path: '/home/namada/.local/share/namada/{{ chain_id }}/config.toml'
+    regexp: '{{ item.key | regex_escape }}.*'
+    replace: '{{ item.value }}'
+  loop: '{{ config_port_changes | dict2items }}'
+  
+
+- name: Set max_num_inbound_peers
+  when: max_num_inbound_peers is defined
+  ansible.builtin.lineinfile:
+    path: "/home/namada/.local/share/namada/{{ chain_id }}/config.toml"
+    regexp: '^max_num_inbound_peers\s*='
+    line: 'max_num_inbound_peers = {{ max_num_inbound_peers }}'
+
+- name: Set max_num_outbound_peers
+  when: max_num_outbound_peers is defined
+  ansible.builtin.lineinfile:
+    path: "/home/namada/.local/share/namada/{{ chain_id }}/config.toml"
+    regexp: '^max_num_outbound_peers\s*='
+    line: 'max_num_outbound_peers = {{ max_num_outbound_peers }}'
+
+- name: validator_port configure
+  when: validator_port | length > 0
+  block:
+  - name: Comment out priv_validator_key_file
+    ansible.builtin.lineinfile:
+      path: '/home/namada/.local/share/namada/{{ chain_id }}/config.toml'
+      regexp: '^\s*priv_validator_key_file\s*=.*$'
+      line: '# \g<0>'
+      backrefs: yes
+
+  - name: Comment out priv_validator_state_file
+    ansible.builtin.lineinfile:
+      path: '/home/namada/.local/share/namada/{{ chain_id }}/config.toml'
+      regexp: '^\s*priv_validator_state_file\s*=.*$'
+      line: '# \g<0>'
+      backrefs: yes
+
+  - name: Set priv_validator_port 
+    ansible.builtin.lineinfile:
+      path: '/home/namada/.local/share/namada/{{ chain_id }}/config.toml'
+      regexp: '^\s*priv_validator_laddr\s*=\s*".*"$'
+      line: 'priv_validator_laddr = "tcp://0.0.0.0:{{ validator_port }}"'
+
+- name: Create cometbft and config directories
+  ansible.builtin.file:
+    path: "/home/namada/.local/share/namada/{{ chain_id }}/cometbft/config"
+    state: directory
+    mode: '0755'
+
+- name: Dowload addrbook
+  ansible.builtin.get_url:
+    url: '{{ cfg.addrbook }}'
+    dest: '/home/namada/.local/share/namada/{{ chain_id }}/cometbft/config/addrbook.json'
+    mode: '0644'
+    force: true
+  when: cfg.addrbook is defined and cfg.addrbook is truthy(convert_bool=True)
+
+- name: Download and wait for snapshot
+  when: run_from == 'snapshot'
+  block:
+    - name: Download snapshot
+      ansible.builtin.shell: |
+        curl -L {{ cfg.snapshot }} | tar -Ilz4 -xf - -C /home/namada/.local/share/namada/{{ chain_id }}
+      register: snapshot_download
+      async: 3000
+      poll: 0
+      args:
+        executable: /bin/bash
+        creates: "/home/namada/.local/share/namada/{{ chain_id }}/cometbft/data/state.db"
+    - name: Wait for snapshot download
+      ansible.builtin.async_status:
+        jid: "{{ snapshot_download.ansible_job_id }}"
+      register: job_status
+      until: job_status.finished
+      retries: 1000
+      delay: 5
+
+- name: Use state sync
+  when: run_from == 'state_sync'
+  block: 
+    - name: Use state sync peer
+      lineinfile:
+        path: '/home/namada/.local/share/namada/{{ chain_id }}/config.toml'
+        regexp: '^persistent_peers ='
+        line: 'persistent_peers = "{{ cfg.state_sync_peer }}"'
+        state: present
+      when: cfg.state_sync_peer is defined and cfg.state_sync_peer | length > 0
+
+    - name: Apply state sync settings
+      shell: "{{ lookup('template', 'use_state_sync.sh.j2') }}"
+      args:
+       executable: /bin/bash
+       
+  

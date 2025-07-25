@@ -1,0 +1,60 @@
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    chain_type: "{{ lookup('env', 'TYPE') | default('mainnet', true) }}"
+    use_service:   "{{ lookup('env', 'USE_SERVICES') | default('MELLIFERA', true) }}"
+
+  pre_tasks:
+    - name: Check that env-specific vars file exists
+      stat:
+        path: "/ansible/group_vars/{{ chain_type }}.yml"
+      register: network_vars
+
+    - name: Abort if file missing
+      fail:
+        msg: "Unknown TYPE='{{ chain_type }}' – vars file not found." 
+      when: not network_vars.stat.exists
+
+    - name: Load env-specific vars
+      include_vars: "/ansible/group_vars/{{ chain_type }}.yml"
+
+    # -------- base cfg pulled from group-vars --------
+    - set_fact:
+        base_cfg: "{{ services[use_service] }}"
+
+    # -------- env overrides (blank vars are ignored) --------
+    - set_fact:
+        env_override:
+          snapshot:        "{{ lookup('env','SNAPSHOT')          | default(omit, true) }}"
+          addrbook:        "{{ lookup('env','ADDRBOOK')          | default(omit, true) }}"
+          peers:           "{{ lookup('env','PEERS')             | default(omit, true) }}"
+          seeds:           "{{ lookup('env','SEEDS')             | default(omit, true) }}"
+          state_sync_rpc:  "{{ lookup('env','STATE_SYNC_RPC')    | default(omit, true) }}"
+          state_sync_peer: "{{ lookup('env','STATE_SYNC_PEER')   | default(omit, true) }}"
+
+    # -------- final merged configuration --------
+    - set_fact:
+        cfg: "{{ base_cfg | combine(env_override, recursive=true) }}"
+  tasks:
+    - name: Print final configuration
+      debug:
+        msg: |
+          Final configuration:
+          - chain_id: {{ chain_id }}
+          - network_config_server: {{ network_config_server }}
+          - snapshot: {{ cfg.snapshot }}
+          - addrbook: {{ cfg.addrbook }}
+          - peers: {{ cfg.peers }}
+          - seeds: {{ cfg.seeds }}
+          - state_sync_rpc: {{ cfg.state_sync_rpc }}
+          - state_sync_peer: {{ cfg.state_sync_peer }}
+  roles: 
+    - namada_configure
+  post_tasks:
+    - name: Print completion message
+      debug:
+        msg: "Namada node configuration completed successfully for {{ chain_type }}."
+    
+ 
