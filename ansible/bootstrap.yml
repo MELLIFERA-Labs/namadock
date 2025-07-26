@@ -44,12 +44,12 @@
           Final configuration:
           - chain_id: {{ chain_id }}
           - network_config_server: {{ network_config_server }}
-          - snapshot: {{ cfg.snapshot }}
-          - addrbook: {{ cfg.addrbook }}
+          - snapshot: {{ cfg.snapshot | default('Not set', true) }}
+          - addrbook: {{ cfg.addrbook | default('Not set', true) }}
           - peers: {{ cfg.peers }}
           - seeds: {{ cfg.seeds }}
-          - state_sync_rpc: {{ cfg.state_sync_rpc }}
-          - state_sync_peer: {{ cfg.state_sync_peer }}
+          - state_sync_rpc: {{ cfg.state_sync_rpc | default('Not set', true) }}
+          - state_sync_peer: {{ cfg.state_sync_peer  | default('Not set', true) }}
   roles: 
     - namada_configure
   post_tasks:
