@@ -2,4 +2,4 @@ config_port_changes:
   'laddr = "tcp://0.0.0.0:26656"': 'laddr = "tcp://0.0.0.0:{{ ports_prefix }}56"'
   'laddr = "tcp://127.0.0.1:26657"': 'laddr = "tcp://0.0.0.0:{{ ports_prefix }}57"'
   'proxy_app = "tcp://127.0.0.1:26658"': 'proxy_app = "tcp://127.0.0.1:{{ ports_prefix }}58"'
-  'prometheus_listen_addr = ":26660"': 'prometheus_listen_addr = ":{{ ports_prefix }}61"'
+  'prometheus_listen_addr = ":26660"': 'prometheus_listen_addr = ":{{ ports_prefix }}60"'
