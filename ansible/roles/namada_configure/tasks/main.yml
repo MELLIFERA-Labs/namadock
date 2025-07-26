@@ -85,7 +85,7 @@
     msg: "Config port changes: {{ config_port_changes }}" 
 
 - name: Adjust config.toml port
-  lineinfile:
+  ansible.builtin.replace:
     path: '/home/namada/.local/share/namada/{{ chain_id }}/config.toml'
     regexp: '{{ item.key | regex_escape }}.*'
     replace: '{{ item.value }}'
